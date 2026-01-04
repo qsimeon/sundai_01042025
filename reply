@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""
+Simple CLI for Reply Generation
+Usage: ./reply [keyword] [num_posts]
+Example: ./reply "retail technology" 5
+"""
+
+import sys
+import os
+
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from dotenv import load_dotenv
+from post_generator import load_company_docs
+from mastodon_client import MastodonClient
+from reply_generator import generate_replies, display_reply_plan
+
+def main():
+    load_dotenv()
+
+    # Get parameters from command line
+    keyword = sys.argv[1] if len(sys.argv) > 1 else "retail technology"
+    num_posts = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+
+    try:
+        print(f"🔍 Searching for posts about '{keyword}'...")
+
+        # Load docs and connect
+        docs = load_company_docs()
+        mastodon = MastodonClient()
+
+        # Get own account ID to filter out self-posts
+        own_account = mastodon.get_account_info()
+        own_account_id = own_account['id']
+
+        # Search for posts
+        posts = mastodon.search_posts(keyword, limit=num_posts)
+
+        if not posts:
+            print(f"❌ No posts found for '{keyword}'")
+            print("Try a different keyword or check your Mastodon connection.")
+            sys.exit(1)
+
+        # Filter out own posts
+        other_posts = [p for p in posts if p['account']['id'] != own_account_id]
+
+        if not other_posts:
+            print(f"✓ Found {len(posts)} posts, but they're all your own posts!")
+            print("Try a different keyword to find posts from others.")
+            sys.exit(0)
+
+        if len(other_posts) < len(posts):
+            print(f"✓ Found {len(posts)} posts, filtered out {len(posts) - len(other_posts)} of your own")
+
+        print(f"✓ Analyzing {len(other_posts)} posts from others...")
+
+        # Generate replies
+        replies = generate_replies(docs, other_posts, min_relevance=6)
+
+        if not replies:
+            print(f"\n❌ No posts met the relevance threshold (6/10)")
+            print("These posts aren't relevant enough to our business.")
+            sys.exit(0)
+
+        # Display plan
+        display_reply_plan(replies)
+
+        # Count posts we should reply to
+        to_reply = [r for r in replies if r.should_reply]
+
+        if not to_reply:
+            print("\n✓ AI analyzed all posts but recommends not replying to any.")
+            print("They either aren't relevant enough or we can't add value.")
+            sys.exit(0)
+
+        # Ask to post
+        print(f"\n💬 {len(to_reply)} replies recommended")
+        try:
+            response = input("Post these replies? (yes/no) [no]: ").strip().lower()
+        except EOFError:
+            response = "no"  # Default to no in non-interactive
+
+        if response in ["yes", "y"]:
+            print("\n📤 Posting replies...")
+            for i, reply in enumerate(to_reply, 1):
+                print(f"  [{i}/{len(to_reply)}] Replying to post {reply.post_id}...")
+                mastodon.reply(reply.post_id, reply.reply_content)
+            print(f"\n✅ Posted {len(to_reply)} replies!")
+        else:
+            print("\n⏭️  Skipped posting replies")
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

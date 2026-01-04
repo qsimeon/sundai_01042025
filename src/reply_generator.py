@@ -59,7 +59,8 @@ def generate_replies(
     company_docs: Dict[str, str],
     posts: List[Dict[str, Any]],
     min_relevance: int = 6,
-    model: str = "gpt-4o-mini"
+    model: str = "gpt-4o-mini",
+    own_account_id: str = None
 ) -> List[Reply]:
     """
     Generate replies to multiple posts at once using structured outputs
