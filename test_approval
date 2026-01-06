@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""
+Test Telegram Button Approval
+Tests the button-based approval workflow without posting to Mastodon.
+"""
+
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from telegram_approval import request_approval, send_notification
+
+
+def main():
+    print("🧪 Testing Telegram button approval workflow...")
+    print("="*60)
+
+    test_content = """Transform retail inventory with AI! 🚀
+
+Our VLM + SAM3D solution uses security cameras for smart tracking, reducing shrinkage and improving accuracy.
+
+#RetailTech #AI #InventoryVision"""
+
+    print("Test content:")
+    print(test_content)
+    print("="*60)
+    print(f"\nCharacter count: {len(test_content)}/500")
+
+    print("\n📱 Sending to Telegram with buttons...")
+    print("⏳ Check your Telegram and press either:")
+    print("   ✅ Approve button")
+    print("   ❌ Reject button")
+
+    # Request approval
+    approved = request_approval(test_content, "post")
+
+    print("\n" + "="*60)
+    if approved:
+        print("✅ You approved the post!")
+        send_notification("🎉 Test successful! Button approval is working correctly.")
+    else:
+        print("❌ You rejected the post")
+        send_notification("Test completed - post was rejected.")
+    print("="*60)
+
+
+if __name__ == "__main__":
+    main()

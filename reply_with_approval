@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""
+Reply Generation with Telegram Button Approval
+Finds relevant posts, generates replies, and sends each to Telegram for approval before posting.
+"""
+
+import sys
+import os
+from dotenv import load_dotenv
+
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from post_generator import load_company_docs
+from mastodon_client import MastodonClient
+from reply_generator import generate_replies, clean_html
+from telegram_approval import request_approval, send_notification
+
+
+def main():
+    load_dotenv()
+
+    # Get parameters from command line
+    keyword = sys.argv[1] if len(sys.argv) > 1 else "retail technology"
+    num_posts = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+
+    try:
+        print(f"🔍 Searching for posts about '{keyword}'...")
+
+        # Load docs and connect
+        docs = load_company_docs()
+        mastodon = MastodonClient()
+
+        # Get own account ID to filter out self-posts
+        own_account = mastodon.get_account_info()
+        own_account_id = own_account['id']
+
+        # Search for posts
+        posts = mastodon.search_posts(keyword, limit=num_posts)
+
+        if not posts:
+            print(f"❌ No posts found for '{keyword}'")
+            send_notification(f"❌ No posts found for '{keyword}'")
+            sys.exit(1)
+
+        # Filter out own posts
+        other_posts = [p for p in posts if p['account']['id'] != own_account_id]
+
+        if not other_posts:
+            print(f"✓ Found {len(posts)} posts, but they're all your own posts!")
+            send_notification("All found posts were your own. Try a different keyword.")
+            sys.exit(0)
+
+        if len(other_posts) < len(posts):
+            print(f"✓ Found {len(posts)} posts, filtered out {len(posts) - len(other_posts)} of your own")
+
+        print(f"✓ Analyzing {len(other_posts)} posts from others...")
+
+        # Generate replies
+        replies = generate_replies(docs, other_posts, min_relevance=6)
+
+        if not replies:
+            print(f"\n❌ No posts met the relevance threshold (6/10)")
+            send_notification("No relevant posts found to reply to.")
+            sys.exit(0)
+
+        # Count posts we should reply to
+        to_reply = [r for r in replies if r.should_reply]
+
+        if not to_reply:
+            print("\n✓ AI analyzed all posts but recommends not replying to any.")
+            send_notification("AI recommends not replying to these posts.")
+            sys.exit(0)
+
+        print(f"\n💬 Found {len(to_reply)} replies recommended by AI")
+        print("📱 Will send each to Telegram for your approval...\n")
+
+        posted_count = 0
+        rejected_count = 0
+
+        # Request approval for each reply via Telegram
+        for i, reply in enumerate(to_reply, 1):
+            # Get the original post details
+            post_id = reply.post_id
+
+            # Find the post to get context
+            original_post = next((p for p in other_posts if p['id'] == post_id), None)
+
+            if not original_post:
+                print(f"⚠️  [{i}/{len(to_reply)}] Could not find original post {post_id}, skipping...")
+                continue
+
+            author = original_post['account']['acct']
+            original_content = clean_html(original_post['content'])[:200]
+
+            # Create approval message with context
+            approval_message = f"""REPLY {i}/{len(to_reply)}
+
+Original post by @{author}:
+"{original_content}..."
+
+Your reply:
+{reply.reply_content}
+
+Relevance: {reply.relevance_score}/10
+Reasoning: {reply.reasoning}"""
+
+            print(f"\n📱 [{i}/{len(to_reply)}] Sending to Telegram for approval...")
+            print(f"   Replying to @{author}")
+
+            # Request approval via Telegram buttons
+            approved = request_approval(approval_message, content_type="reply")
+
+            if approved:
+                print(f"✅ [{i}/{len(to_reply)}] Approved! Posting reply...")
+                mastodon.reply(post_id, reply.reply_content)
+                posted_count += 1
+                print(f"✓ Posted reply to @{author}")
+            else:
+                print(f"❌ [{i}/{len(to_reply)}] Rejected, skipping this reply")
+                rejected_count += 1
+
+        # Send summary notification
+        summary = f"""✅ Reply session complete!
+
+Posted: {posted_count}
+Rejected: {rejected_count}
+Total reviewed: {len(to_reply)}"""
+
+        send_notification(summary)
+
+        print("\n" + "="*60)
+        print(f"✅ Session complete!")
+        print(f"   Posted: {posted_count} replies")
+        print(f"   Rejected: {rejected_count} replies")
+        print("="*60)
+
+    except Exception as e:
+        error_msg = f"❌ Error: {e}"
+        print(error_msg)
+        send_notification(error_msg)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

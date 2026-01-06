@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""
+Test Telegram Bot
+Simple script to test if Telegram notifications are working.
+"""
+
+import sys
+sys.path.insert(0, '/Users/quileesimeon/sundai_01042025/src')
+
+from telegram_client import send_notification
+
+def main():
+    print("🧪 Testing Telegram bot...")
+    print("📱 Check your Telegram - you should receive a message!")
+
+    # Send a simple test notification
+    send_notification("🎉 Hello! Your Telegram bot is working correctly! This is a test message from your social media agent.")
+
+    print("✅ Test message sent!")
+    print("\nIf you didn't receive it, check:")
+    print("1. Your TELEGRAM_BOT_TOKEN is correct in .env")
+    print("2. Your TELEGRAM_CHAT_ID is correct in .env")
+    print("3. You've started a chat with your bot (send /start)")
+
+if __name__ == "__main__":
+    main()
