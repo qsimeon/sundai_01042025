@@ -24,13 +24,33 @@ class BatchReplies(BaseModel):
     replies: List[Reply] = Field(description="List of potential replies to posts")
 
 
-def create_openai_client() -> OpenAI:
-    """Create OpenAI client"""
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not found in environment variables")
+def create_llm_client() -> OpenAI:
+    """
+    Create OpenAI client (supports both direct OpenAI and OpenRouter)
 
-    return OpenAI(api_key=api_key)
+    Set USE_OPENROUTER=true in .env to use OpenRouter instead of OpenAI.
+    OpenRouter gives you access to multiple AI models through one API.
+    """
+    use_openrouter = os.getenv('USE_OPENROUTER', 'false').lower() == 'true'
+
+    if use_openrouter:
+        # Use OpenRouter - access to multiple AI models
+        api_key = os.getenv('OPENROUTER_API_KEY')
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY not found in environment variables")
+
+        print("Using OpenRouter API...")
+        return OpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1"
+        )
+    else:
+        # Use OpenAI directly
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables")
+
+        return OpenAI(api_key=api_key)
 
 
 def clean_html(html_content: str) -> str:
@@ -58,8 +78,8 @@ def clean_html(html_content: str) -> str:
 def generate_replies(
     company_docs: Dict[str, str],
     posts: List[Dict[str, Any]],
-    min_relevance: int = 6,
-    model: str = "gpt-4o-mini",
+    min_relevance: int = 5,
+    model: str = "openai/gpt-4o-mini",
     own_account_id: str = None
 ) -> List[Reply]:
     """
@@ -69,12 +89,12 @@ def generate_replies(
         company_docs: Dictionary of company documentation
         posts: List of post dictionaries from Mastodon
         min_relevance: Minimum relevance score to actually reply (1-10)
-        model: OpenAI model to use
+        model: OpenRouter model to use
 
     Returns:
         List of Reply objects
     """
-    client = create_openai_client()
+    client = create_llm_client()
 
     # Prepare company context (abbreviated)
     company_summary = f"""

@@ -13,7 +13,8 @@ uv run python test_approval
 uv run python post_with_approval
 
 # Reply with Telegram approval (each reply approved individually)
-uv run python reply_with_approval "retail tech" 5
+# Use specific keywords: "retail", "inventory", "computer vision", "retail tech"
+uv run python reply_with_approval "retail" 5
 
 # Post directly (no approval)
 uv run python post thought_leadership
@@ -86,12 +87,19 @@ uv sync
 - Replies auto-filter your own posts
 - Timeout is 5 minutes for approval
 
+## 🤖 OpenRouter (Access Multiple AI Models)
+
+Currently: **ENABLED** ✅ (using `openai/gpt-4o-mini` - ~$0.003/post)
+
+To try different models, edit `src/post_generator.py` line 82:
+```python
+model: str = "anthropic/claude-3.5-sonnet"  # Or any model from openrouter.ai/models
+```
+
+Options: `openai/gpt-4o-mini` ($0.15/1M), `anthropic/claude-3.5-sonnet` ($3/1M)
+
+Test: `uv run python test_openrouter` (look for "Using OpenRouter API...")
+
 ## 📖 Full Documentation
 
 See `docs/README.md` for comprehensive guide.
-
-## 🆘 Help
-
-- Workshop PDFs in `~/Downloads/`
-- Telegram notebook: `Copy_of_telegram_bot_workshop.ipynb`
-- Full README: `docs/README.md`

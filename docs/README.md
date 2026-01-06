@@ -38,15 +38,18 @@ uv run python post thought_leadership
 
 **With Telegram Approval (Recommended):**
 ```bash
-uv run python reply_with_approval "retail technology" 5
+uv run python reply_with_approval "retail" 5
 ```
-Finds posts, generates replies, sends EACH reply to Telegram for approval before posting.
+Finds posts, AI scores relevance (1-10), sends relevant ones to Telegram for approval before posting.
 
 **Without Approval (Direct):**
 ```bash
-uv run python reply "retail technology" 5
+uv run python reply "retail" 5
 ```
-Finds 5 relevant posts, generates replies, asks for approval in terminal (yes/no for all).
+Finds 5 posts, AI scores relevance and shows scores, asks for approval in terminal (yes/no for all).
+
+**Good keywords:** "retail", "inventory", "computer vision", "retail tech"
+**Generic keywords:** "AI", "product marketing" (often not relevant to your niche)
 
 ## 📋 Requirements Met
 
@@ -226,23 +229,22 @@ The company documents describe a fictional company that uses:
 
 ## 🛠️ Tech Stack
 
-- **AI**: OpenAI GPT-4o-mini (~$0.003/post)
+- **AI**: OpenRouter (currently using `openai/gpt-4o-mini` - ~$0.003/post)
+  - Access to 50+ models: GPT-4, Claude, Llama, Gemini, etc.
+  - Set `USE_OPENROUTER=true` in `.env` to enable (currently enabled)
+  - Change model in `src/post_generator.py` line 82 (see https://openrouter.ai/models)
 - **Social Media**: Mastodon API
-- **Messaging**: Telegram Bot API
+- **Messaging**: Telegram Bot API with button approval
 - **Language**: Python 3.13
 - **Package Manager**: uv
-- **Key Libraries**:
-  - `openai` - AI generation
-  - `mastodon-py` - Social media posting
-  - `python-telegram-bot` - Button approval
-  - `pydantic` - Structured outputs
+- **Key Libraries**: `openai`, `mastodon-py`, `python-telegram-bot`, `pydantic`
 
 ## 📊 Cost
 
-- **OpenAI**: ~$0.003 per post (essentially free)
+- **AI**: ~$0.003 per post (using OpenAI GPT-4o-mini via OpenRouter)
 - **Mastodon**: Free
 - **Telegram**: Free
-- **Total**: ~$0.003 per post
+- **Total**: ~$0.003 per post (essentially free)
 
 ## 🔍 Example Workflow
 

@@ -57,10 +57,10 @@ def main():
         print(f"✓ Analyzing {len(other_posts)} posts from others...")
 
         # Generate replies
-        replies = generate_replies(docs, other_posts, min_relevance=6)
+        replies = generate_replies(docs, other_posts, min_relevance=5)
 
         if not replies:
-            print(f"\n❌ No posts met the relevance threshold (6/10)")
+            print(f"\n❌ No posts met the relevance threshold (5/10)")
             send_notification("No relevant posts found to reply to.")
             sys.exit(0)
 

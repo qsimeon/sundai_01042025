@@ -25,6 +25,7 @@ class TelegramApprovalBot:
         self.bot = Bot(token=self.token)
         self.approval_received = False
         self.user_approved = False
+        self.current_message_id = None  # Track which message we're waiting for
 
     async def send_approval_request(self, content: str, content_type: str = "post") -> bool:
         """
@@ -60,6 +61,9 @@ class TelegramApprovalBot:
             text=message_text,
             reply_markup=keyboard
         )
+
+        # Store the message ID we're waiting for
+        self.current_message_id = message.message_id
 
         print(f"📱 Approval request sent to Telegram!")
         print(f"⏳ Waiting for you to press a button in Telegram...")
@@ -121,6 +125,16 @@ class TelegramApprovalBot:
     async def _handle_button(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle button press from user."""
         query = update.callback_query
+
+        # Only handle callbacks for the message we're currently waiting for
+        if query.message.message_id != self.current_message_id:
+            # This is from a different message, silently ignore it
+            try:
+                await query.answer()  # Just acknowledge without message
+            except Exception:
+                pass  # Ignore if query is too old
+            return
+
         await query.answer()  # Acknowledge button press
 
         # Get the response
@@ -131,14 +145,18 @@ class TelegramApprovalBot:
         self.user_approved = (response == "approve")
 
         # Update the message
-        if response == "approve":
-            await query.edit_message_text(
-                "✅ APPROVED\n\nPosting to Mastodon..."
-            )
-        else:
-            await query.edit_message_text(
-                "❌ REJECTED\n\nPost cancelled."
-            )
+        try:
+            if response == "approve":
+                await query.edit_message_text(
+                    "✅ APPROVED\n\nPosting to Mastodon..."
+                )
+            else:
+                await query.edit_message_text(
+                    "❌ REJECTED\n\nPost cancelled."
+                )
+        except Exception as e:
+            # If message edit fails (e.g., already edited), just continue
+            pass
 
     async def send_notification(self, message: str):
         """Send a simple notification (no markdown parsing)."""

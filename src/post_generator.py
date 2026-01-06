@@ -46,34 +46,54 @@ def load_company_docs(docs_dir: str = "company_docs") -> dict[str, str]:
     return docs
 
 
-def create_openai_client() -> OpenAI:
-    """Create OpenAI client"""
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not found in environment variables")
+def create_llm_client() -> OpenAI:
+    """
+    Create LLM client (supports both direct OpenAI and OpenRouter)
 
-    return OpenAI(api_key=api_key)
+    Set USE_OPENROUTER=true in .env to use OpenRouter instead of OpenAI.
+    OpenRouter gives you access to multiple AI models through one API.
+    """
+    use_openrouter = os.getenv('USE_OPENROUTER', 'false').lower() == 'true'
+
+    if use_openrouter:
+        # Use OpenRouter - access to multiple AI models
+        api_key = os.getenv('OPENROUTER_API_KEY')
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY not found in environment variables")
+
+        print("Using OpenRouter API...")
+        return OpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1"
+        )
+    else:
+        # Use OpenAI directly
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables")
+
+        return OpenAI(api_key=api_key)
 
 
 def generate_post(
     company_docs: dict[str, str],
     post_type: str = "thought_leadership",
     platform: str = "mastodon",
-    model: str = "gpt-4o-mini"
+    model: str = "openai/gpt-4o-mini" 
 ) -> SocialMediaPost:
     """
-    Generate a social media post using OpenAI with structured outputs
+    Generate a social media post using LLMs with structured outputs
 
     Args:
         company_docs: Dictionary of company documentation
         post_type: Type of post to generate (thought_leadership, customer_story, etc.)
         platform: Target platform (linkedin, twitter, mastodon)
-        model: OpenAI model to use (gpt-4o-mini is cheap and good)
+        model: OpenRouter model to use (openai/gpt-4o-mini is cheap and good)
 
     Returns:
         SocialMediaPost object with structured content
     """
-    client = create_openai_client()
+    client = create_llm_client()
 
     # Combine all company docs into context
     context = "\n\n".join([
