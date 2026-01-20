@@ -19,16 +19,29 @@ class SocialMediaPost(BaseModel):
     call_to_action: str | None = Field(description="Optional call-to-action. For Mastodon, skip this to save characters.")
 
 
-def load_company_docs(docs_dir: str = "company_docs") -> dict[str, str]:
+def load_company_docs(docs_dir: str = "company_docs", use_notion: bool = True) -> dict[str, str]:
     """
-    Load all company documentation files from the specified directory
+    Load all company documentation files from Notion or local directory
 
     Args:
-        docs_dir: Path to directory containing company documentation markdown files
+        docs_dir: Path to directory containing company documentation markdown files (fallback)
+        use_notion: If True, load from Notion API. If False, load from local files.
 
     Returns:
         Dictionary mapping document names to their content
     """
+    if use_notion:
+        # Try to load from Notion first
+        try:
+            from notion_loader import load_company_docs_from_notion
+            print("Loading company docs from Notion...")
+            return load_company_docs_from_notion()
+        except Exception as e:
+            print(f"Warning: Could not load from Notion: {e}")
+            print("Falling back to local files...")
+            use_notion = False
+
+    # Load from local files
     docs_path = Path(docs_dir)
     docs = {}
 
@@ -42,7 +55,7 @@ def load_company_docs(docs_dir: str = "company_docs") -> dict[str, str]:
     if not docs:
         raise ValueError(f"No markdown files found in {docs_dir}")
 
-    print(f"Loaded {len(docs)} company documents")
+    print(f"Loaded {len(docs)} company documents from local files")
     return docs
 
 
