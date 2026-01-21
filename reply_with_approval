@@ -109,7 +109,7 @@ Reasoning: {reply.reasoning}"""
             print(f"   Replying to @{author}")
 
             # Request approval via Telegram buttons
-            approved = request_approval(approval_message, content_type="reply")
+            approved, rejection_reason = request_approval(approval_message, content_type="reply")
 
             if approved:
                 print(f"✅ [{i}/{len(to_reply)}] Approved! Posting reply...")
@@ -118,6 +118,8 @@ Reasoning: {reply.reasoning}"""
                 print(f"✓ Posted reply to @{author}")
             else:
                 print(f"❌ [{i}/{len(to_reply)}] Rejected, skipping this reply")
+                if rejection_reason:
+                    print(f"   📝 Reason: {rejection_reason}")
                 rejected_count += 1
 
         # Send summary notification

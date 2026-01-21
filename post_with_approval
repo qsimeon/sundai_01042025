@@ -62,11 +62,15 @@ def main():
 
     # Request approval via Telegram buttons (with image preview if available)
     print("\n📱 Sending to Telegram for approval...")
-    approved = request_approval(formatted, content_type="post", image_path=image_path)
+    approved, rejection_reason = request_approval(formatted, content_type="post", image_path=image_path)
 
     if not approved:
         print("\n❌ Post was not approved. Cancelled.")
-        send_notification("❌ Post was rejected and not published.")
+        if rejection_reason:
+            print(f"   📝 Rejection reason: {rejection_reason}")
+            send_notification(f"❌ Post was rejected.\n\nReason: {rejection_reason}")
+        else:
+            send_notification("❌ Post was rejected and not published.")
         return
 
     # Post to Mastodon with image

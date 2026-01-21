@@ -52,3 +52,6 @@ Thumbs.db
 generated_images/*.png
 generated_images/*.jpg
 generated_images/*.webp
+
+# Rejection feedback log
+feedback_log.json
