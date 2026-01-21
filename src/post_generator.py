@@ -17,6 +17,7 @@ class SocialMediaPost(BaseModel):
     platform: Literal["linkedin", "twitter", "mastodon"] = Field(description="Target platform for this post")
     post_type: str = Field(description="Type of post: thought_leadership, customer_story, product_update, industry_insight, etc.")
     call_to_action: str | None = Field(description="Optional call-to-action. For Mastodon, skip this to save characters.")
+    image_prompt: str = Field(description="A concise visual prompt (max 100 chars) describing a scene for an accompanying image. Should feature a character in a setting related to the post theme (e.g., 'character in a modern retail store analyzing products'). Use professional, tech-focused imagery.")
 
 
 def load_company_docs(docs_dir: str = "company_docs", use_notion: bool = True) -> dict[str, str]:

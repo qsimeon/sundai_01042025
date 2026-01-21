@@ -27,21 +27,26 @@ class TelegramApprovalBot:
         self.user_approved = False
         self.current_message_id = None  # Track which message we're waiting for
 
-    async def send_approval_request(self, content: str, content_type: str = "post") -> bool:
+    async def send_approval_request(
+        self,
+        content: str,
+        content_type: str = "post",
+        image_path: str = None
+    ) -> bool:
         """
         Send approval request with buttons and wait for response.
 
         Args:
             content: The post/reply content
             content_type: "post" or "reply"
+            image_path: Optional path to image to preview
 
         Returns:
             True if approved, False if rejected
         """
         icon = "📝" if content_type == "post" else "💬"
 
-        # Escape markdown special characters in content for display
-        # Don't parse content as markdown to avoid issues
+        # Build caption/message text
         message_text = f"{icon} Approval Request: {content_type.upper()}\n\n"
         message_text += f"Content:\n{content}\n\n"
         message_text += f"Character count: {len(content)}/500\n\n"
@@ -55,12 +60,23 @@ class TelegramApprovalBot:
             ]
         ])
 
-        # Send message (no markdown parsing to avoid errors)
-        message = await self.bot.send_message(
-            chat_id=self.chat_id,
-            text=message_text,
-            reply_markup=keyboard
-        )
+        # Send message with or without image
+        if image_path:
+            # Send photo with caption and buttons
+            with open(image_path, 'rb') as photo:
+                message = await self.bot.send_photo(
+                    chat_id=self.chat_id,
+                    photo=photo,
+                    caption=message_text,
+                    reply_markup=keyboard
+                )
+        else:
+            # Send text message with buttons
+            message = await self.bot.send_message(
+                chat_id=self.chat_id,
+                text=message_text,
+                reply_markup=keyboard
+            )
 
         # Store the message ID we're waiting for
         self.current_message_id = message.message_id

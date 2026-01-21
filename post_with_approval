@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from post_generator import generate_post, load_company_docs, format_post_for_platform
 from mastodon_client import MastodonClient
 from telegram_approval import request_approval, send_notification
+from image_generator import generate_image
 
 
 def main():
@@ -45,19 +46,37 @@ def main():
         send_notification(f"❌ Generated post was too long ({len(formatted)} chars)")
         return
 
-    # Request approval via Telegram buttons
+    # Generate image using the image_prompt
+    print(f"\n🎨 Generating image...")
+    print(f"   Image prompt: {post.image_prompt}")
+    try:
+        image_path = generate_image(
+            prompt=post.image_prompt,
+            aspect_ratio="1:1",  # Square for social media
+            num_inference_steps=28,  # Good quality/speed balance
+        )
+    except Exception as e:
+        print(f"\n⚠️  Image generation failed: {e}")
+        print("Continuing without image...")
+        image_path = None
+
+    # Request approval via Telegram buttons (with image preview if available)
     print("\n📱 Sending to Telegram for approval...")
-    approved = request_approval(formatted, content_type="post")
+    approved = request_approval(formatted, content_type="post", image_path=image_path)
 
     if not approved:
         print("\n❌ Post was not approved. Cancelled.")
         send_notification("❌ Post was rejected and not published.")
         return
 
-    # Post to Mastodon
+    # Post to Mastodon with image
     print("\n✅ Posting to Mastodon...")
     mastodon = MastodonClient()
-    result = mastodon.post(formatted)
+    result = mastodon.post(
+        content=formatted,
+        media_path=image_path,
+        media_description=post.image_prompt  # Use prompt as alt text
+    )
 
     # Send success notification (without markdown to avoid parsing errors)
     post_url = result['url']

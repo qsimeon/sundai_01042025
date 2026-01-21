@@ -41,21 +41,43 @@ class MastodonClient:
         except Exception as e:
             raise ValueError(f"Failed to authenticate with Mastodon: {e}")
 
-    def post(self, content: str, visibility: str = "public") -> Dict[str, Any]:
+    def post(
+        self,
+        content: str,
+        visibility: str = "public",
+        media_path: str = None,
+        media_description: str = None
+    ) -> Dict[str, Any]:
         """
-        Post a status update (toot) to Mastodon
+        Post a status update (toot) to Mastodon with optional image
 
         Args:
             content: The text content to post
             visibility: Post visibility ('public', 'unlisted', 'private', 'direct')
+            media_path: Optional path to image file to attach
+            media_description: Optional alt text for image (accessibility)
 
         Returns:
             Dictionary containing the posted status information
         """
         try:
+            media_ids = None
+
+            # Upload media if provided
+            if media_path:
+                print(f"   📎 Uploading image: {media_path}")
+                media = self.client.media_post(
+                    media_file=media_path,
+                    description=media_description or "Generated image for social media post"
+                )
+                media_ids = [media['id']]
+                print(f"   ✓ Image uploaded")
+
+            # Post status with or without media
             status = self.client.status_post(
                 content,
-                visibility=visibility
+                visibility=visibility,
+                media_ids=media_ids
             )
             print(f"✓ Posted to Mastodon: {status['url']}")
             return status
