@@ -31,9 +31,9 @@ The code will automatically find and load all pages shared with the integration.
 ```
 📄 Company: Inventory.ai (parent page)
   ├─ 📄 Company Overview
-  ├─ 📄 Brand Voice
-  ├─ 📄 Products & Services
-  └─ 📄 Target Audience
+  ├─ 📄 Product Description
+  ├─ 📄 Technology & Architecture (High-Level)
+  └─ 📄 Brand Voice & Social Media Constraint
 ```
 
 ### 4. Test the Integration
