@@ -66,6 +66,18 @@ Once pages are shared, the post generator will automatically use Notion:
 ./reply_with_approval "retail technology"
 ```
 
+## Important: Environment Variable Priority
+
+**The `.env` file always takes precedence over shell environment variables.**
+
+All scripts use `load_dotenv(override=True)` which means:
+- ✅ Values in `.env` override values in `~/.zshrc`
+- ✅ You can update tokens in `.env` without restarting your terminal
+- ✅ Project configuration is self-contained in `.env`
+
+**Why this matters:**
+If you have `MASTODON_ACCESS_TOKEN` in both `~/.zshrc` and `.env`, the value from `.env` will be used. This prevents confusion from cached/outdated shell variables.
+
 ## Troubleshooting
 
 ### "Found 0 total accessible pages"
