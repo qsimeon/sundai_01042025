@@ -15,7 +15,7 @@ from post_generator import load_company_docs, generate_post, format_post_for_pla
 from mastodon_client import MastodonClient
 
 def main():
-    load_dotenv()
+    load_dotenv(override=True)
 
     # Get post type from command line or use default
     post_type = sys.argv[1] if len(sys.argv) > 1 else "thought_leadership"

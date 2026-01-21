@@ -193,7 +193,7 @@ def format_post_for_platform(post: SocialMediaPost) -> str:
 if __name__ == "__main__":
     # Example usage
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
 
     # Load company docs
     docs = load_company_docs()

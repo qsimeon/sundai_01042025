@@ -17,7 +17,7 @@ from telegram_approval import request_approval, send_notification
 
 
 def main():
-    load_dotenv()
+    load_dotenv(override=True)
 
     # Get post type from command line or use default
     post_type = sys.argv[1] if len(sys.argv) > 1 else "thought_leadership"

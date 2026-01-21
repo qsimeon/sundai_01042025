@@ -219,7 +219,7 @@ if __name__ == "__main__":
     from mastodon_client import MastodonClient
     from post_generator import load_company_docs
 
-    load_dotenv()
+    load_dotenv(override=True)
 
     try:
         # Load company docs

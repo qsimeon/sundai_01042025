@@ -176,7 +176,7 @@ Content:
 if __name__ == "__main__":
     # Example usage
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
 
     try:
         # Initialize client

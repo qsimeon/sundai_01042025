@@ -212,7 +212,7 @@ def load_company_docs_from_notion() -> Dict[str, str]:
 if __name__ == "__main__":
     # Test the Notion loader
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
 
     try:
         docs = load_company_docs_from_notion()
