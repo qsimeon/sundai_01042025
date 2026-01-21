@@ -182,19 +182,20 @@ class TelegramApprovalBot:
         )
 
 
-def request_approval(content: str, content_type: str = "post") -> bool:
+def request_approval(content: str, content_type: str = "post", image_path: str = None) -> bool:
     """
     Request approval with Telegram buttons (synchronous wrapper).
 
     Args:
         content: The content to approve
         content_type: "post" or "reply"
+        image_path: Optional path to image to preview
 
     Returns:
         True if approved, False if rejected
     """
     bot = TelegramApprovalBot()
-    return asyncio.run(bot.send_approval_request(content, content_type))
+    return asyncio.run(bot.send_approval_request(content, content_type, image_path))
 
 
 def send_notification(message: str):
