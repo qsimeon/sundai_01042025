@@ -1,11 +1,13 @@
 """
 Social Media Post Generator (OpenAI Version)
 Uses OpenAI's GPT with structured outputs to generate brand-aligned social media posts
+Incorporates rejection feedback to improve future posts.
 """
 
 from openai import OpenAI
 from pydantic import BaseModel, Field
 import os
+import json
 from pathlib import Path
 from typing import Literal
 
@@ -60,6 +62,57 @@ def load_company_docs(docs_dir: str = "company_docs", use_notion: bool = True) -
     return docs
 
 
+def load_rejection_feedback(max_entries: int = 10) -> list[dict]:
+    """
+    Load recent rejection feedback from the feedback log.
+    
+    Args:
+        max_entries: Maximum number of recent feedback entries to load
+    
+    Returns:
+        List of recent rejection feedback dictionaries
+    """
+    log_file = Path("feedback_log.json")
+    
+    if not log_file.exists():
+        return []
+    
+    try:
+        with open(log_file, 'r') as f:
+            log = json.load(f)
+        
+        # Return most recent entries
+        return log[-max_entries:] if log else []
+    except (json.JSONDecodeError, Exception):
+        return []
+
+
+def format_feedback_for_prompt(feedback_list: list[dict]) -> str:
+    """
+    Format rejection feedback into a prompt section.
+    
+    Args:
+        feedback_list: List of feedback dictionaries
+    
+    Returns:
+        Formatted string for inclusion in the prompt
+    """
+    if not feedback_list:
+        return ""
+    
+    feedback_text = "\n\n### IMPORTANT: PAST REJECTION FEEDBACK\nLearn from these rejected posts and avoid similar issues:\n\n"
+    
+    for i, entry in enumerate(feedback_list[-5:], 1):  # Last 5 rejections
+        reason = entry.get('rejection_reason', 'No reason provided')
+        content_preview = entry.get('content', '')[:100]
+        feedback_text += f"{i}. Rejected because: \"{reason}\"\n"
+        feedback_text += f"   (Post started with: \"{content_preview}...\")\n\n"
+    
+    feedback_text += "AVOID making the same mistakes. Create something fresh and different!\n"
+    
+    return feedback_text
+
+
 def create_llm_client() -> OpenAI:
     """
     Create LLM client (supports both direct OpenAI and OpenRouter)
@@ -93,7 +146,8 @@ def generate_post(
     company_docs: dict[str, str],
     post_type: str = "thought_leadership",
     platform: str = "mastodon",
-    model: str = "openai/gpt-4o-mini" 
+    model: str = "openai/gpt-4o-mini",
+    use_feedback: bool = True
 ) -> SocialMediaPost:
     """
     Generate a social media post using LLMs with structured outputs
@@ -103,11 +157,20 @@ def generate_post(
         post_type: Type of post to generate (thought_leadership, customer_story, etc.)
         platform: Target platform (linkedin, twitter, mastodon)
         model: OpenRouter model to use (openai/gpt-4o-mini is cheap and good)
+        use_feedback: Whether to include rejection feedback in prompt
 
     Returns:
         SocialMediaPost object with structured content
     """
     client = create_llm_client()
+
+    # Load rejection feedback
+    feedback_section = ""
+    if use_feedback:
+        feedback_list = load_rejection_feedback()
+        if feedback_list:
+            feedback_section = format_feedback_for_prompt(feedback_list)
+            print(f"📝 Including {len(feedback_list)} past rejection feedback entries")
 
     # Combine all company docs into context
     context = "\n\n".join([
@@ -140,7 +203,7 @@ Focus on educating, inspiring, and building community rather than just promoting
     user_prompt = f"""Based on this company documentation:
 
 {context}
-
+{feedback_section}
 Create a {post_type} social media post for {platform.title()} that:
 - Follows the {platform} style: {platform_guidelines.get(platform, 'Authentic and engaging')}
 - Is engaging and valuable to retail professionals and technology enthusiasts

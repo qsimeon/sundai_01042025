@@ -111,25 +111,34 @@ class TelegramApprovalBot:
         # Wait for response (timeout after 5 minutes)
         timeout = 300  # 5 minutes
         elapsed = 0
+        offset = None  # Track update offset to avoid reprocessing
+
+        # Clear any pending updates first
+        try:
+            pending = await app.bot.get_updates(offset=None, timeout=1)
+            if pending:
+                offset = pending[-1].update_id + 1
+        except Exception:
+            pass
 
         while not self.approval_received and elapsed < timeout:
             try:
-                updates = await app.bot.get_updates(offset=None, timeout=1)
+                updates = await app.bot.get_updates(offset=offset, timeout=2)
 
                 for update in updates:
+                    # Update offset to avoid reprocessing this update
+                    offset = update.update_id + 1
                     await app.process_update(update)
 
-                    if self.approval_received:
-                        break
-
+                # Don't break early - we might be waiting for feedback text after reject
                 if self.approval_received:
                     break
 
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"   (polling error: {e})")
 
-            await asyncio.sleep(1)
-            elapsed += 1
+            await asyncio.sleep(0.5)
+            elapsed += 0.5
 
         # Cleanup
         await app.stop()
@@ -180,22 +189,41 @@ class TelegramApprovalBot:
             self.user_approved = False
             self.waiting_for_feedback = True
 
+            print("   ❌ Reject button pressed - waiting for feedback reason...")
+
             try:
-                await query.edit_message_text(
-                    "❌ REJECTED\n\n"
-                    "Please reply with the reason for rejection.\n"
-                    "This feedback helps improve future posts.\n\n"
-                    "Examples:\n"
-                    "• 'Too promotional'\n"
-                    "• 'Wrong tone'\n"
-                    "• 'Factually incorrect'\n"
-                    "• 'Not relevant to our brand'"
-                )
-            except Exception:
-                pass
+                # Try to edit caption first (for photo messages), fallback to text
+                try:
+                    await query.edit_message_caption(
+                        caption="❌ REJECTED\n\n"
+                        "Please reply with the reason for rejection.\n"
+                        "This feedback helps improve future posts.\n\n"
+                        "Examples:\n"
+                        "• 'Too promotional'\n"
+                        "• 'Wrong tone'\n"
+                        "• 'Factually incorrect'\n"
+                        "• 'Not relevant to our brand'"
+                    )
+                except Exception:
+                    await query.edit_message_text(
+                        "❌ REJECTED\n\n"
+                        "Please reply with the reason for rejection.\n"
+                        "This feedback helps improve future posts.\n\n"
+                        "Examples:\n"
+                        "• 'Too promotional'\n"
+                        "• 'Wrong tone'\n"
+                        "• 'Factually incorrect'\n"
+                        "• 'Not relevant to our brand'"
+                    )
+            except Exception as e:
+                print(f"   (couldn't edit message: {e})")
 
     async def _handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages (for rejection feedback)."""
+        # Only handle messages from our chat
+        if update.message.chat_id != self.chat_id:
+            return
+
         if not self.waiting_for_feedback:
             return
 
@@ -203,11 +231,16 @@ class TelegramApprovalBot:
         self.waiting_for_feedback = False
         self.approval_received = True  # Now we're done
 
-        await update.message.reply_text(
-            f"📝 Feedback recorded!\n\n"
-            f"Reason: {self.rejection_reason}\n\n"
-            f"This will help improve future posts. Thank you!"
-        )
+        print(f"   📝 Feedback received: {self.rejection_reason}")
+
+        try:
+            await update.message.reply_text(
+                f"📝 Feedback recorded!\n\n"
+                f"Reason: {self.rejection_reason}\n\n"
+                f"This will help improve future posts. Thank you!"
+            )
+        except Exception as e:
+            print(f"   (couldn't send confirmation: {e})")
 
     def _log_rejection(self, content: str, content_type: str, reason: str):
         """Log rejection feedback to a JSON file."""
