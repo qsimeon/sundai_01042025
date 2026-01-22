@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
+from secrets_manager import get_secret_manager
 from post_generator import load_company_docs
 from mastodon_client import MastodonClient
 from reply_generator import generate_replies, clean_html
@@ -19,6 +20,7 @@ from telegram_approval import request_approval, send_notification
 
 def main():
     load_dotenv(override=True)
+    get_secret_manager()  # Initialize Secret Manager integration
 
     # Get parameters from command line
     keyword = sys.argv[1] if len(sys.argv) > 1 else "retail technology"

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
+from secrets_manager import get_secret_manager
 from post_generator import generate_post, load_company_docs, format_post_for_platform
 from mastodon_client import MastodonClient
 from telegram_approval import request_approval, send_notification
@@ -19,6 +20,7 @@ from image_generator import generate_image
 
 def main():
     load_dotenv(override=True)
+    get_secret_manager()  # Initialize Secret Manager integration
 
     # Get post type from command line or use default
     post_type = sys.argv[1] if len(sys.argv) > 1 else "thought_leadership"

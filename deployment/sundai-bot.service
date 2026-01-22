@@ -1,0 +1,28 @@
+[Unit]
+Description=Sundai Social Media Bot
+After=network.target
+Wants=sundai-bot.timer
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/sundai-bot
+ExecStart=/usr/local/bin/python3.13 post_with_approval
+
+# Restart on failure with 5 minute delay
+Restart=on-failure
+RestartSec=300
+
+# Logging configuration
+StandardOutput=append:/opt/sundai-bot/logs/bot.log
+StandardError=append:/opt/sundai-bot/logs/bot-error.log
+
+# Environment
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="HOME=/root"
+
+# Security hardening (optional, comment out if too restrictive)
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+[Unit]
+Description=Sundai Social Media Bot Timer
+Requires=sundai-bot.service
+
+[Timer]
+# Run 5 minutes after boot
+OnBootSec=5min
+
+# Run every 4 hours after last run
+OnUnitActiveSec=4h
+
+# Ensure timer persists across reboots if it missed a scheduled run
+Persistent=true
+
+# Accuracy - run within 1 minute of scheduled time
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
