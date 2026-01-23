@@ -28,9 +28,10 @@ fi
 echo ""
 echo "📁 Creating directories on VM..."
 gcloud compute ssh $VM --zone=$ZONE --project=$PROJECT --command='
-    mkdir -p /opt/sundai-bot/logs
-    mkdir -p /opt/sundai-bot/database
-    mkdir -p /opt/sundai-bot/generated_images
+    sudo mkdir -p /opt/sundai-bot/logs
+    sudo mkdir -p /opt/sundai-bot/database
+    sudo mkdir -p /opt/sundai-bot/generated_images
+    sudo chown -R $USER:$USER /opt/sundai-bot || true
 '
 
 # 2. Upload code
@@ -40,12 +41,19 @@ gcloud compute scp --recurse \
     --zone=$ZONE \
     --project=$PROJECT \
     src/ api/ database/ pyproject.toml .env \
-    root@$VM:/opt/sundai-bot/ 2>/dev/null || \
+    $VM:/tmp/sundai-bot-upload/ 2>/dev/null || \
 gcloud compute scp --recurse \
     --zone=$ZONE \
     --project=$PROJECT \
     src/ api/ database/ pyproject.toml \
-    root@$VM:/opt/sundai-bot/
+    $VM:/tmp/sundai-bot-upload/
+
+# Move uploaded files to /opt/sundai-bot
+gcloud compute ssh $VM --zone=$ZONE --project=$PROJECT --command='
+    sudo mkdir -p /opt/sundai-bot
+    sudo cp -r /tmp/sundai-bot-upload/* /opt/sundai-bot/
+    sudo chown -R root:root /opt/sundai-bot
+'
 
 # 3. Install system dependencies
 echo ""
@@ -80,7 +88,7 @@ echo ""
 echo "🗄️  Initializing database..."
 gcloud compute ssh $VM --zone=$ZONE --project=$PROJECT --command='
     cd /opt/sundai-bot
-    .venv/bin/python << "EOF"
+    DATABASE_PATH=/opt/sundai-bot/database/sundai.db .venv/bin/python << "EOF"
 from api.database import init_db
 try:
     init_db()
@@ -89,6 +97,7 @@ except Exception as e:
     print(f"✗ Database initialization failed: {e}")
     exit(1)
 EOF
+    sudo chown -R root:root /opt/sundai-bot/database || true
 '
 
 # 6. Deploy systemd service
@@ -98,15 +107,16 @@ gcloud compute scp \
     --zone=$ZONE \
     --project=$PROJECT \
     deployment/sundai-api.service \
-    root@$VM:/etc/systemd/system/
+    $VM:/tmp/sundai-api.service
 
 gcloud compute ssh $VM --zone=$ZONE --project=$PROJECT --command='
-    systemctl daemon-reload
-    systemctl enable sundai-api.service
-    systemctl restart sundai-api.service
+    sudo cp /tmp/sundai-api.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable sundai-api.service
+    sudo systemctl restart sundai-api.service
     echo "Waiting for API to start..."
     sleep 3
-    systemctl status sundai-api.service --no-pager
+    sudo systemctl status sundai-api.service --no-pager
 '
 
 # 7. Get external IP
