@@ -200,6 +200,9 @@ Focus on educating, inspiring, and building community rather than just promoting
         "mastodon": "Authentic and community-focused. CRITICAL: Content MAXIMUM 350 characters. Skip call_to_action field. Use 3-4 SHORT hashtags only."
     }
 
+    mastodon_limits = "CRITICAL MASTODON LIMITS:\n- Content field: MAXIMUM 350 characters\n- Hashtags: Use 3-4 SHORT tags (not 5)\n- call_to_action: MUST be null/empty\n- Total post with hashtags must be under 500 characters\nBe extremely concise. Every character counts!"
+    mastodon_section = f"\n{mastodon_limits}" if platform == "mastodon" else ""
+
     user_prompt = f"""Based on this company documentation:
 
 {context}
@@ -209,9 +212,7 @@ Create a {post_type} social media post for {platform.title()} that:
 - Is engaging and valuable to retail professionals and technology enthusiasts
 - Includes 3-5 relevant hashtags
 - Follows our brand voice (confident but humble, technical but accessible)
-- Provides actionable insights or thought-provoking ideas
-
-{"CRITICAL MASTODON LIMITS:\n- Content field: MAXIMUM 350 characters\n- Hashtags: Use 3-4 SHORT tags (not 5)\n- call_to_action: MUST be null/empty\n- Total post with hashtags must be under 500 characters\nBe extremely concise. Every character counts!" if platform == "mastodon" else ""}
+- Provides actionable insights or thought-provoking ideas{mastodon_section}
 
 Post type focus:
 - thought_leadership: Share insights about retail technology trends
